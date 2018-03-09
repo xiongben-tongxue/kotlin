@@ -17,3 +17,7 @@ annotation class JvmDefaultFeature
 @JvmDefaultFeature
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY)
 annotation class JvmDefault
+
+@JvmDefaultFeature
+@Target(AnnotationTarget.CLASS)
+annotation class JvmDefaultCompatibility

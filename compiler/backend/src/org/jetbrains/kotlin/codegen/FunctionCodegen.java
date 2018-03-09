@@ -78,6 +78,7 @@ import static org.jetbrains.kotlin.resolve.DescriptorToSourceUtils.getSourceFrom
 import static org.jetbrains.kotlin.resolve.DescriptorUtils.*;
 import static org.jetbrains.kotlin.resolve.jvm.AsmTypes.OBJECT_TYPE;
 import static org.jetbrains.kotlin.resolve.jvm.annotations.AnnotationUtilKt.hasJvmDefaultAnnotation;
+import static org.jetbrains.kotlin.resolve.jvm.annotations.AnnotationUtilKt.hasJvmDefaultCompatibilityAnnotation;
 import static org.jetbrains.kotlin.types.expressions.ExpressionTypingUtils.*;
 import static org.jetbrains.org.objectweb.asm.Opcodes.*;
 
@@ -400,7 +401,7 @@ public class FunctionCodegen {
             Method accessorMethod =
                     typeMapper.mapAsmMethod(memberCodegen.getContext().accessibleDescriptor(staticFunctionDescriptor, null));
             Type owningType = typeMapper.mapClass((ClassifierDescriptor) staticFunctionDescriptor.getContainingDeclaration());
-            generateDelegateToStaticMethodBody(false, mv, accessorMethod, owningType.getInternalName());
+            generateDelegateToStaticMethodBody(false, mv, accessorMethod, owningType.getInternalName(), false);
         }
 
         endVisit(mv, null, origin.getElement());
@@ -592,6 +593,22 @@ public class FunctionCodegen {
 
         if (context.getParentContext() instanceof MultifileClassFacadeContext) {
             generateFacadeDelegateMethodBody(mv, signature.getAsmMethod(), (MultifileClassFacadeContext) context.getParentContext());
+            methodEnd = new Label();
+        }
+        else if (OwnerKind.DEFAULT_IMPLS == context.getContextKind() &&
+                 hasJvmDefaultAnnotation(functionDescriptor) &&
+                 hasJvmDefaultCompatibilityAnnotation(functionDescriptor.getContainingDeclaration())) {
+            FunctionDescriptor compatibility = ((DefaultImplsClassContext) context.getParentContext()).getInterfaceContext()
+                    .getAccessorForJvmDefaultCompatibility(functionDescriptor);
+            int flags = AsmUtil.getMethodAsmFlags(functionDescriptor, OwnerKind.DEFAULT_IMPLS, context.getState());
+            assert (flags & Opcodes.ACC_ABSTRACT) == 0 : "Interface method with body should be non-abstract" + functionDescriptor;
+            CallableMethod method = typeMapper.mapToCallableMethod(compatibility, true);
+
+            generateDelegateToStaticMethodBody(
+                    true, mv,
+                    method.getAsmMethod(),
+                    method.getOwner().getInternalName(),
+                    true);
             methodEnd = new Label();
         }
         else {
@@ -805,7 +822,7 @@ public class FunctionCodegen {
             @NotNull Method asmMethod,
             @NotNull MultifileClassFacadeContext context
     ) {
-        generateDelegateToStaticMethodBody(true, mv, asmMethod, context.getFilePartType().getInternalName());
+        generateDelegateToStaticMethodBody(true, mv, asmMethod, context.getFilePartType().getInternalName(), false);
     }
 
     private static void generateDelegateToMethodBody(
@@ -873,9 +890,10 @@ public class FunctionCodegen {
             boolean isStatic,
             @NotNull MethodVisitor mv,
             @NotNull Method asmMethod,
-            @NotNull String classToDelegateTo
+            @NotNull String classToDelegateTo,
+            boolean isInterfaceMethodCall
     ) {
-        generateDelegateToMethodBody(isStatic ? 0 : 1, mv, asmMethod, classToDelegateTo, Opcodes.INVOKESTATIC, false);
+        generateDelegateToMethodBody(isStatic ? 0 : 1, mv, asmMethod, classToDelegateTo, Opcodes.INVOKESTATIC, isInterfaceMethodCall);
     }
 
     private static boolean needIndexForVar(JvmMethodParameterKind kind) {
@@ -1481,7 +1499,7 @@ public class FunctionCodegen {
                                                     containingDeclaration;
 
         if (hasJvmDefaultAnnotation(memberDescriptor)) {
-           return kind != OwnerKind.DEFAULT_IMPLS;
+           return kind != OwnerKind.DEFAULT_IMPLS || hasJvmDefaultCompatibilityAnnotation(getDirectMember(memberDescriptor).getContainingDeclaration());
         } else {
             switch (kind) {
                 case DEFAULT_IMPLS: return true;

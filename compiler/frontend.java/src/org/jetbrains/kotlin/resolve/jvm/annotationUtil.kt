@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.resolve.jvm.annotations
 
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.resolve.DescriptorUtils
@@ -36,3 +37,7 @@ fun CallableMemberDescriptor.hasJvmDefaultAnnotation() =
 
 fun DeclarationDescriptor.isCallableMemberWithJvmDefaultAnnotation() =
     (this as? CallableMemberDescriptor)?.hasJvmDefaultAnnotation() ?: false
+
+
+fun DeclarationDescriptor.hasJvmDefaultCompatibilityAnnotation() =
+    this.annotations.hasAnnotation(FqName("kotlin.jvm.JvmDefaultCompatibility"))

@@ -497,6 +497,27 @@ public class BlackBoxWithJava8CodegenTestGenerated extends AbstractBlackBoxCodeg
                 doTest(fileName);
             }
 
+            @TestMetadata("compiler/testData/codegen/java8/box/jvm8/defaults/compatibility")
+            @TestDataPath("$PROJECT_ROOT")
+            @RunWith(JUnit3RunnerWithInners.class)
+            public static class Compatibility extends AbstractBlackBoxCodegenTest {
+                public void testAllFilesPresentInCompatibility() throws Exception {
+                    KotlinTestUtils.assertAllTestsPresentByMetadata(this.getClass(), new File("compiler/testData/codegen/java8/box/jvm8/defaults/compatibility"), Pattern.compile("^(.+)\\.kt$"), TargetBackend.ANY, true);
+                }
+
+                @TestMetadata("simpleCall.kt")
+                public void testSimpleCall() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/codegen/java8/box/jvm8/defaults/compatibility/simpleCall.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("simpleFunction.kt")
+                public void testSimpleFunction() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/codegen/java8/box/jvm8/defaults/compatibility/simpleFunction.kt");
+                    doTest(fileName);
+                }
+            }
+
             @TestMetadata("compiler/testData/codegen/java8/box/jvm8/defaults/delegationBy")
             @TestDataPath("$PROJECT_ROOT")
             @RunWith(JUnit3RunnerWithInners.class)
