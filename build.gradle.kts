@@ -80,8 +80,12 @@ repositories {
     }
 }
 
+val cidrKotlinPlugin by configurations.creating
+
 dependencies {
     bootstrapCompileCfg(kotlinDep("compiler-embeddable", bootstrapKotlinVersion))
+
+    cidrKotlinPlugin(project(":prepare:cidr-plugin", "runtimeJar"))
 }
 
 val commonBuildDir = File(rootDir, "build")
@@ -371,7 +375,7 @@ val compilerCopyTask = task<Copy>("idea-plugin-copy-compiler") {
     from(distDir) { include("kotlinc/**") }
 }
 
-task<Copy>("ideaPlugin") {
+val ideaPlugin by task<Copy> {
     dependsOn(compilerCopyTask)
     val childIdeaPluginTasks = getTasksByName("ideaPlugin", true) - this@task
     dependsOn(childIdeaPluginTasks)
@@ -520,8 +524,8 @@ tasks {
 }
 
 fun CopySpec.compilerScriptPermissionsSpec() {
-    filesMatching("bin/*") { mode = 0b111101101 }
-    filesMatching("bin/*.bat") { mode = 0b110100100 }
+    filesMatching("bin/*") { mode = 0b111111111 }
+    filesMatching("bin/*.bat") { mode = 0b111111111 }
 }
 
 val zipCompiler by task<Zip> {
@@ -570,6 +574,28 @@ val zipPlugin by task<Zip> {
             exclude("kotlinc")
         }
     }
+    doLast {
+        logger.lifecycle("Plugin artifacts packed to $archivePath")
+    }
+}
+
+val cidrPlugin by task<Copy> {
+    dependsOn(ideaPlugin)
+    into(cidrPluginDir)
+    from(ideaPluginDir) { exclude("lib/kotlin-plugin.jar") }
+    from(cidrKotlinPlugin) { into("lib") }
+}
+
+val zipCidrPlugin by task<Zip> {
+    val pluginZipName = findProperty("cidr.plugin.zip.name") as? String
+            ?: error("Failed to configure task '$name': property 'cidr.plugin.zip.name' is not found")
+
+    from(cidrPlugin)
+    into("Kotlin")
+
+    destinationDir = File("$distDir/artifacts/")
+    archiveName = pluginZipName
+
     doLast {
         logger.lifecycle("Plugin artifacts packed to $archivePath")
     }
