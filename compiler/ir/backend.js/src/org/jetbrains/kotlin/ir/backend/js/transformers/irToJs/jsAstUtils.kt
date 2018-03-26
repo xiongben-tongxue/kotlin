@@ -5,9 +5,10 @@
 
 package org.jetbrains.kotlin.ir.backend.js.transformers.irToJs
 
+import org.jetbrains.kotlin.ir.backend.js.utils.JsGenerationContext
+import org.jetbrains.kotlin.ir.backend.js.utils.Namer
 import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.js.backend.ast.JsDynamicScope
-import org.jetbrains.kotlin.js.backend.ast.JsVars
+import org.jetbrains.kotlin.js.backend.ast.*
 import org.jetbrains.kotlin.name.Name
 
 // TODO don't use JsDynamicScope
@@ -17,7 +18,11 @@ fun Name.toJsName() =
     // TODO sanitize
     dummyScope.declareName(asString())
 
-fun jsVar(name: Name, initializer: IrExpression?): JsVars {
-    val jsInitializer = initializer?.accept(IrElementToJsExpressionTransformer(), null)
+fun jsVar(name: Name, initializer: IrExpression?, context: JsGenerationContext): JsVars {
+    val jsInitializer = initializer?.accept(IrElementToJsExpressionTransformer(), context)
     return JsVars(JsVars.JsVar(name.toJsName(), jsInitializer))
 }
+
+fun jsAssignment(left: JsExpression, right: JsExpression) = JsBinaryOperation(JsBinaryOperator.ASG, left, right)
+
+fun prototypeOf(classNameRef: JsExpression) = JsNameRef(Namer.PROTOTYPE_NAME, classNameRef)

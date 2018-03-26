@@ -5,27 +5,51 @@
 
 package org.jetbrains.kotlin.ir.backend.js.transformers.irToJs
 
-import org.jetbrains.kotlin.ir.backend.js.utils.isPrimary
-import org.jetbrains.kotlin.ir.backend.js.utils.parameterCount
+import org.jetbrains.kotlin.ir.backend.js.utils.*
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
-import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.IrExpressionBody
+import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.js.backend.ast.*
 
-class IrElementToJsExpressionTransformer : BaseIrElementToJsNodeTransformer<JsExpression, Nothing?> {
-    override fun visitExpressionBody(body: IrExpressionBody, data: Nothing?): JsExpression {
-        return body.expression.accept(this, data)
+class IrElementToJsExpressionTransformer : BaseIrElementToJsNodeTransformer<JsExpression, JsGenerationContext> {
+    override fun visitExpressionBody(body: IrExpressionBody, context: JsGenerationContext): JsExpression {
+        return body.expression.accept(this, context)
     }
 
-    override fun <T> visitConst(expression: IrConst<T>, data: Nothing?): JsExpression {
+    override fun <T> visitConst(expression: IrConst<T>, context: JsGenerationContext): JsExpression {
         // TODO: support all cases
         return JsStringLiteral(expression.value.toString())
     }
 
-    override fun visitCall(expression: IrCall, data: Nothing?): JsExpression {
+    override fun visitGetField(expression: IrGetField, context: JsGenerationContext): JsExpression {
+        return JsNameRef(expression.symbol.name.asString(), expression.receiver?.accept(this, context))
+    }
+
+    override fun visitSetField(expression: IrSetField, context: JsGenerationContext): JsExpression {
+        val dest = JsNameRef(expression.symbol.name.asString(), expression.receiver?.accept(this, context))
+        val source = expression.value.accept(this, context)
+        return jsAssignment(dest, source)
+    }
+
+    override fun visitGetValue(expression: IrGetValue, context: JsGenerationContext): JsExpression {
+
+        return if (expression.symbol.isSpecial) {
+            context.getSpecialRefForName(expression.symbol.name)
+        } else {
+            JsNameRef(context.getNameForSymbol(expression.symbol))
+        }
+
+    }
+
+    override fun visitDelegatingConstructorCall(expression: IrDelegatingConstructorCall, context: JsGenerationContext): JsExpression {
+        val classNameRef = expression.symbol.owner.descriptor.constructedClass.name.toJsName().makeRef()
+        val callFuncRef = JsNameRef(Namer.CALL_FUNCTION, classNameRef)
+        val arguments = context.translateCallArguments(expression, expression.symbol.parameterCount)
+        return JsInvocation(callFuncRef, listOf(JsThisRef()) + arguments)
+    }
+
+    override fun visitCall(expression: IrCall, context: JsGenerationContext): JsExpression {
         // TODO rewrite more accurately, right now it just copy-pasted and adopted from old version
         // TODO support:
         // * ir intrinsics
@@ -36,23 +60,14 @@ class IrElementToJsExpressionTransformer : BaseIrElementToJsNodeTransformer<JsEx
 
         val symbol = expression.symbol
 
-        val dispatchReceiver = expression.dispatchReceiver?.accept(this, data)
-        val extensionReceiver = expression.extensionReceiver?.accept(this, data)
+        val dispatchReceiver = expression.dispatchReceiver?.accept(this, context)
+        val extensionReceiver = expression.extensionReceiver?.accept(this, context)
 
         // TODO sanitize name
         val symbolName = (symbol.owner as IrSimpleFunction).name.asString()
         val ref = if (dispatchReceiver != null) JsNameRef(symbolName, dispatchReceiver) else JsNameRef(symbolName)
 
-        val arguments =
-            // TODO mapTo?
-            (0 until expression.symbol.parameterCount).map {
-                val argument = expression.getValueArgument(it)
-                if (argument != null) {
-                    argument.accept(this, data)
-                } else {
-                    JsPrefixOperation(JsUnaryOperator.VOID, JsIntLiteral(1))
-                }
-            }
+        val arguments = context.translateCallArguments(expression, expression.symbol.parameterCount)
 
 
         if (symbol is IrConstructorSymbol && symbol.isPrimary) {
