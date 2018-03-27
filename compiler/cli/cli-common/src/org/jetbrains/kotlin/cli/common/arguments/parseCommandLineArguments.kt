@@ -19,7 +19,6 @@ package org.jetbrains.kotlin.cli.common.arguments
 import org.jetbrains.kotlin.utils.SmartList
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 
 @Target(AnnotationTarget.PROPERTY)
@@ -37,6 +36,8 @@ val Argument.isAdvanced: Boolean
 
 private const val ADVANCED_ARGUMENT_PREFIX = "-X"
 private const val FREE_ARGS_DELIMITER = "--"
+
+internal val INTERNAL_ARGUMENT_PREFIX = "-XX:"
 
 data class ArgumentParseErrors(
     val unknownArgs: MutableList<String> = SmartList<String>(),
@@ -102,6 +103,7 @@ fun <A : CommonToolArguments> parseCommandLineArguments(args: List<String>, resu
     }
 
     val freeArgs = ArrayList<String>()
+    val internalArguments = ArrayList<String>()
 
     var i = 0
     loop@ while (i < args.size) {
@@ -113,6 +115,11 @@ fun <A : CommonToolArguments> parseCommandLineArguments(args: List<String>, resu
         }
         if (arg == FREE_ARGS_DELIMITER) {
             freeArgsStarted = true
+            continue
+        }
+
+        if (arg.startsWith(INTERNAL_ARGUMENT_PREFIX)) {
+            internalArguments += arg
             continue
         }
 
@@ -154,6 +161,7 @@ fun <A : CommonToolArguments> parseCommandLineArguments(args: List<String>, resu
     }
 
     result.freeArgs += freeArgs
+    result.internalArguments += internalArguments
 }
 
 private fun <A : CommonToolArguments> updateField(property: KMutableProperty1<A, Any?>, result: A, value: Any, delimiter: String) {

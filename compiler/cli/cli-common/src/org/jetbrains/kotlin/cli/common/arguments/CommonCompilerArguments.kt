@@ -210,6 +210,11 @@ abstract class CommonCompilerArguments : CommonToolArguments() {
             if (properIeee754Comparisons) {
                 put(LanguageFeature.ProperIeee754Comparisons, LanguageFeature.State.ENABLED)
             }
+
+            val internalArgsParser = InternalArgumentsParser(collector)
+            internalArguments.mapNotNull { internalArgsParser.parseInternalArgument(it) }
+                .filterIsInstance<ManualLanguageFeatureSetting>()
+                .forEach { (languageFeature, state) -> put(languageFeature, state) }
         }
 
     fun configureLanguageVersionSettings(collector: MessageCollector): LanguageVersionSettings {
