@@ -13,20 +13,19 @@ import kotlin.script.experimental.definitions.ScriptDefinitionFromAnnotatedBaseC
 import kotlin.script.experimental.host.toScriptSource
 import kotlin.script.experimental.jvm.*
 import kotlin.script.experimental.jvmhost.impl.KJVMCompilerImpl
+import kotlin.script.experimental.misc.*
 
-inline fun myJvmConfig(
-    from: ChainedPropertyBag = ChainedPropertyBag(),
-    crossinline body: JvmScriptCompileConfigurationParams.Builder.() -> Unit = {}
-) = jvmConfigWithJavaHome(from) {
-    signature<MyScript>()
-    dependencies(scriptCompilationClasspathFromContext("script" /* script library jar name */))
-    body()
+val myJvmConfigParams = jvmJavaHomeParams + with(ScriptCompileConfigurationParams) {
+    listOf(
+        scriptSignature to ScriptSignature(MyScript::class, ProvidedDeclarations()),
+        dependencies(JvmDependency(scriptCompilationClasspathFromContext("script" /* script library jar name */)))
+    )
 }
 
 fun evalFile(scriptFile: File): ResultWithDiagnostics<EvaluationResult> {
     val scriptCompiler = JvmScriptCompiler(KJVMCompilerImpl(), DummyCompiledJvmScriptCache())
     val scriptDefinition = ScriptDefinitionFromAnnotatedBaseClass(
-        ChainedPropertyBag(ScriptingEnvironmentProperties.baseClass to MyScript::class)
+        ChainedPropertyBag(null, ScriptingEnvironmentProperties.baseClass to MyScript::class)
     )
 
     val host = JvmBasicScriptingHost(
@@ -35,7 +34,7 @@ fun evalFile(scriptFile: File): ResultWithDiagnostics<EvaluationResult> {
         scriptDefinition.evaluator
     )
 
-    return host.eval(scriptFile.toScriptSource(), myJvmConfig(), ScriptEvaluationEnvironment())
+    return host.eval(scriptFile.toScriptSource(), ChainedPropertyBag(null, myJvmConfigParams), ScriptEvaluationEnvironment())
 }
 
 fun main(vararg args: String) {

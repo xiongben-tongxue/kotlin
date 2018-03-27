@@ -11,6 +11,7 @@ import kotlin.script.experimental.api.*
 class PassThroughCompilationConfigurator(val environment: ChainedPropertyBag) : ScriptCompilationConfigurator {
 
     override val defaultConfiguration = ScriptCompileConfiguration(
+        null,
         ScriptCompileConfigurationParams.baseClass to environment[ScriptingEnvironmentProperties.baseClass]
     )
 
