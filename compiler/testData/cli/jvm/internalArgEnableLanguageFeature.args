@@ -3,4 +3,4 @@ $TESTDATA_DIR$/inlineClass.kt
 $TEMP_DIR$
 -language-version
 1.2
--XX:+InlineClasses
+-XX\:+InlineClasses
