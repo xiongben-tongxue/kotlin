@@ -5,7 +5,6 @@
 
 package org.jetbrains.kotlin.ir.backend.js.transformers.irToJs
 
-import org.jetbrains.kotlin.backend.jvm.lower.PropertiesLowering
 import org.jetbrains.kotlin.ir.backend.js.utils.JsGenerationContext
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.name
@@ -14,9 +13,6 @@ import org.jetbrains.kotlin.js.backend.ast.JsStatement
 
 class IrFileToJsTransformer : BaseIrElementToJsNodeTransformer<JsStatement, JsGenerationContext> {
     override fun visitFile(declaration: IrFile, context: JsGenerationContext): JsStatement {
-
-        PropertiesLowering().lower(declaration)
-
         val fileContext = context.newDeclaration(JsDeclarationScope(context.currentScope, "scope for file ${declaration.name}"))
         val block = fileContext.currentBlock
 

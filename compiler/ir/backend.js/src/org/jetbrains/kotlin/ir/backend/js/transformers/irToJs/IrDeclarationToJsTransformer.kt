@@ -24,7 +24,7 @@ class IrDeclarationToJsTransformer : BaseIrElementToJsNodeTransformer<JsStatemen
 
     override fun visitConstructor(declaration: IrConstructor, context: JsGenerationContext): JsStatement {
         assert(!declaration.symbol.isPrimary)
-        TODO("not implemented: secondary constructor") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented: secondary constructor")
     }
 
     override fun visitClass(declaration: IrClass, context: JsGenerationContext): JsStatement {
