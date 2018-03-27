@@ -1,0 +1,6 @@
+package
+
+public fun getShort(): kotlin.Short
+public fun </*0*/ T> select(/*0*/ x: T, /*1*/ y: T): T
+public fun </*0*/ R : kotlin.Comparable<R>> shortResult(/*0*/ f: R): kotlin.Unit
+public fun test(): kotlin.Unit

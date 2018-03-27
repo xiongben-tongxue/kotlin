@@ -10472,6 +10472,12 @@ public class DiagnosticsUsingJavacTestGenerated extends AbstractDiagnosticsUsing
                 doTest(fileName);
             }
 
+            @TestMetadata("integerValueTypeAsIntersectionAndUnionType.kt")
+            public void testIntegerValueTypeAsIntersectionAndUnionType() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/inference/integerValueTypeAsIntersectionAndUnionType.kt");
+                doTest(fileName);
+            }
+
             @TestMetadata("intersectionTypeMultipleBoundsAsReceiver.kt")
             public void testIntersectionTypeMultipleBoundsAsReceiver() throws Exception {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/inference/intersectionTypeMultipleBoundsAsReceiver.kt");
