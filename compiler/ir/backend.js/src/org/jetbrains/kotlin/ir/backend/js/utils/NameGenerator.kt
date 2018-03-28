@@ -13,7 +13,6 @@ import org.jetbrains.kotlin.js.backend.ast.JsScope
 import org.jetbrains.kotlin.name.Name
 
 interface NameGenerator {
-    fun getNameForDescriptor(descriptor: DeclarationDescriptor, scope: JsScope): JsName
     fun getNameForSymbol(symbol: IrSymbol, scope: JsScope): JsName
 
     fun getSpecialRefForName(name: Name): JsExpression

@@ -23,7 +23,7 @@ class JsGenerationContext {
     val currentBlock: JsBlock
     val currentScope: JsScope
     val parent: JsGenerationContext?
-    private val staticContext: JsStaticContext
+    val staticContext: JsStaticContext
     private val program: JsProgram
 
     constructor(rootScope: JsRootScope) {
@@ -43,48 +43,6 @@ class JsGenerationContext {
         this.currentScope = scope
     }
 
-    fun translateFunction(declaration: IrFunction, name: Name?): JsFunction {
-        val functionScope = JsFunctionScope(currentScope, "scope for ${name ?: "annon"}")
-        val functionContext = newDeclaration(functionScope)
-        val body = declaration.body?.accept(IrElementToJsStatementTransformer(), functionContext) as? JsBlock ?: JsBlock()
-        val function = JsFunction(functionScope, body, "member function ${name ?: "annon"}")
-
-        function.name = name?.toJsName()
-
-        fun JsFunction.addParameter(parameterName: String) {
-            val parameter = function.scope.declareName(parameterName)
-            parameters.add(JsParameter(parameter))
-        }
-
-        declaration.extensionReceiverParameter?.let { function.addParameter("\$receiver") }
-        declaration.valueParameters.forEach {
-            if (it.name.isSpecial) {
-                function.addParameter(staticContext.getSpecialNameString(it.name.asString()))
-            } else {
-                function.addParameter(it.name.asString())
-            }
-        }
-
-        return function
-    }
-
-    fun translateCallArguments(
-        expression: IrMemberAccessExpression,
-        parameterCount: Int
-    ): List<JsExpression> {
-        val transformer = IrElementToJsExpressionTransformer()
-        // TODO: map to?
-        return (0 until parameterCount).map {
-            val argument = expression.getValueArgument(it)
-            if (argument != null) {
-                argument.accept(transformer, this)
-            } else {
-                JsPrefixOperation(JsUnaryOperator.VOID, JsIntLiteral(1))
-            }
-        }
-    }
-
-    fun getNameForDescriptor(descriptor: DeclarationDescriptor): JsName = staticContext.getNameForDescriptor(descriptor)
     fun getNameForSymbol(symbol: IrSymbol): JsName = staticContext.getNameForSymbol(symbol)
     fun getSpecialRefForName(name: Name): JsExpression = staticContext.getSpecialRefForName(name)
 }

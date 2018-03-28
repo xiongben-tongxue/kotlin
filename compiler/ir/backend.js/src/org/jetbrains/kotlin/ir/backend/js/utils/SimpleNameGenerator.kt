@@ -16,7 +16,22 @@ class SimpleNameGenerator : NameGenerator {
 
     override fun getNameForSymbol(symbol: IrSymbol, scope: JsScope): JsName = getNameForDescriptor(symbol.descriptor, scope)
 
-    override fun getNameForDescriptor(descriptor: DeclarationDescriptor, scope: JsScope): JsName = nameCache.getOrPut(descriptor, {
+    override fun getSpecialRefForName(name: Name): JsExpression {
+        assert(name.isSpecial)
+
+        val nameString = name.asString()
+        return when (nameString) {
+            Namer.THIS_SPECIAL_NAME -> JsThisRef()
+            else -> JsNameRef(getSpecialNameString(nameString))
+        }
+    }
+
+    override fun getSpecialNameString(specNameString: String): String = when (specNameString) {
+        Namer.SET_SPECIAL_NAME -> Namer.SETTER_ARGUMENT
+        else -> TODO("for Name ${specNameString}")
+    }
+
+    private fun getNameForDescriptor(descriptor: DeclarationDescriptor, scope: JsScope): JsName = nameCache.getOrPut(descriptor, {
         val nameBuilder = StringBuilder()
         when (descriptor) {
             is PropertyAccessorDescriptor -> {
@@ -35,19 +50,4 @@ class SimpleNameGenerator : NameGenerator {
         }
         return@getOrPut scope.declareName(nameBuilder.toString())
     })
-
-    override fun getSpecialRefForName(name: Name): JsExpression {
-        assert(name.isSpecial)
-
-        val nameString = name.asString()
-        return when (nameString) {
-            Namer.THIS_SPECIAL_NAME -> JsThisRef()
-            else -> JsNameRef(getSpecialNameString(nameString))
-        }
-    }
-
-    override fun getSpecialNameString(specNameString: String): String = when (specNameString) {
-        Namer.SET_SPECIAL_NAME -> Namer.SETTER_ARGUMENT
-        else -> TODO("for Name ${specNameString}")
-    }
 }

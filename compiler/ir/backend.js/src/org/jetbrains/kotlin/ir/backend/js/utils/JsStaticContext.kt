@@ -17,15 +17,7 @@ class JsStaticContext(
     private val nameGenerator: NameGenerator
 ) {
 
-    fun getNameForSymbol(irSymbol: IrSymbol) = getNameForDescriptor(irSymbol.descriptor)
-    fun getNameForDescriptor(descriptor: DeclarationDescriptor): JsName =
-        nameGenerator.getNameForDescriptor(descriptor, getScopeForDescriptor(descriptor))
-
+    fun getNameForSymbol(irSymbol: IrSymbol) = nameGenerator.getNameForSymbol(irSymbol, rootScope)
     fun getSpecialRefForName(name: Name): JsExpression = nameGenerator.getSpecialRefForName(name)
     fun getSpecialNameString(specNameString: String): String = nameGenerator.getSpecialNameString(specNameString)
-
-    private fun getScopeForDescriptor(descriptor: DeclarationDescriptor): JsScope {
-        // TODO:
-        return rootScope
-    }
 }

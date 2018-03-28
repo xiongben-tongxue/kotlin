@@ -45,7 +45,7 @@ class IrElementToJsExpressionTransformer : BaseIrElementToJsNodeTransformer<JsEx
     override fun visitDelegatingConstructorCall(expression: IrDelegatingConstructorCall, context: JsGenerationContext): JsExpression {
         val classNameRef = expression.symbol.owner.descriptor.constructedClass.name.toJsName().makeRef()
         val callFuncRef = JsNameRef(Namer.CALL_FUNCTION, classNameRef)
-        val arguments = context.translateCallArguments(expression, expression.symbol.parameterCount)
+        val arguments = translateCallArguments(expression, expression.symbol.parameterCount, context)
         return JsInvocation(callFuncRef, listOf(JsThisRef()) + arguments)
     }
 
@@ -63,17 +63,16 @@ class IrElementToJsExpressionTransformer : BaseIrElementToJsNodeTransformer<JsEx
         val dispatchReceiver = expression.dispatchReceiver?.accept(this, context)
         val extensionReceiver = expression.extensionReceiver?.accept(this, context)
 
-        // TODO sanitize name
-        val symbolName = (symbol.owner as IrSimpleFunction).name.asString()
-        val ref = if (dispatchReceiver != null) JsNameRef(symbolName, dispatchReceiver) else JsNameRef(symbolName)
 
-        val arguments = context.translateCallArguments(expression, expression.symbol.parameterCount)
+        val arguments = translateCallArguments(expression, expression.symbol.parameterCount, context)
 
-
-        if (symbol is IrConstructorSymbol && symbol.isPrimary) {
-            return JsNew(JsNameRef((symbol.owner.parent as IrClass).name.asString()), arguments)
+        return if (symbol is IrConstructorSymbol && symbol.isPrimary) {
+            JsNew(JsNameRef((symbol.owner.parent as IrClass).name.asString()), arguments)
+        } else {
+            // TODO sanitize name
+            val symbolName = (symbol.owner as IrSimpleFunction).name.asString()
+            val ref = if (dispatchReceiver != null) JsNameRef(symbolName, dispatchReceiver) else JsNameRef(symbolName)
+            JsInvocation(ref, extensionReceiver?.let { listOf(extensionReceiver) + arguments } ?: arguments)
         }
-
-        return JsInvocation(ref, extensionReceiver?.let { listOf(extensionReceiver) + arguments } ?: arguments)
     }
 }

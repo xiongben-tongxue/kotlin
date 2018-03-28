@@ -6,6 +6,7 @@
 package org.jetbrains.kotlin.ir.backend.js.transformers.irToJs
 
 import org.jetbrains.kotlin.ir.backend.js.utils.JsGenerationContext
+import org.jetbrains.kotlin.ir.backend.js.utils.constructedClassName
 import org.jetbrains.kotlin.ir.backend.js.utils.isPrimary
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
@@ -13,22 +14,20 @@ import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.js.backend.ast.*
 
-class IrDeclarationToJsTransformer : BaseIrElementToJsNodeTransformer<JsStatement, JsGenerationContext> {
+open class IrDeclarationToJsTransformer : BaseIrElementToJsNodeTransformer<JsStatement, JsGenerationContext> {
     override fun visitProperty(declaration: IrProperty, context: JsGenerationContext): JsStatement {
         return jsVar(declaration.name, declaration.backingField?.initializer?.expression, context)
     }
 
     override fun visitSimpleFunction(declaration: IrSimpleFunction, context: JsGenerationContext): JsStatement {
-        return context.translateFunction(declaration, declaration.name).makeStmt()
+        return declaration.accept(IrFunctionToJsTransformer(), context).makeStmt()
     }
 
     override fun visitConstructor(declaration: IrConstructor, context: JsGenerationContext): JsStatement {
-        assert(!declaration.symbol.isPrimary)
-        TODO("not implemented: secondary constructor")
+        return declaration.accept(IrFunctionToJsTransformer(), context).makeStmt()
     }
 
     override fun visitClass(declaration: IrClass, context: JsGenerationContext): JsStatement {
-
         return JsClassGenerator(declaration, context).generate()
     }
 }

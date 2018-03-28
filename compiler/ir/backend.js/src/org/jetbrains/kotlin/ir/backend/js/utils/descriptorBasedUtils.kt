@@ -16,6 +16,8 @@ val IrFunctionSymbol.modality get() = descriptor.modality
 
 val IrConstructorSymbol.isPrimary get() = descriptor.isPrimary
 
+val IrConstructorSymbol.constructedClassName get() = descriptor.constructedClass.name
+
 val IrConstructorSymbol.constructedClass get() = descriptor.constructedClass
 
 val IrValueSymbol.isSpecial get() = descriptor.name.isSpecial
