@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
+ * Copyright 2010-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
  * that can be found in the license/LICENSE.txt file.
  */
 
@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.load.java.JvmAbi;
 import org.jetbrains.kotlin.load.java.SpecialBuiltinMembers;
 import org.jetbrains.kotlin.load.java.descriptors.JavaClassDescriptor;
 import org.jetbrains.kotlin.name.FqName;
+import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.*;
 import org.jetbrains.kotlin.resolve.BindingContext;
 import org.jetbrains.kotlin.resolve.DescriptorToSourceUtils;
@@ -386,6 +387,7 @@ public class FunctionCodegen {
                     new Label(),
                     contextKind,
                     typeMapper,
+                    new ArrayList<>(),
                     0);
 
             mv.visitEnd();
@@ -644,9 +646,18 @@ public class FunctionCodegen {
         if (functionDescriptor instanceof AnonymousFunctionDescriptor && functionDescriptor.isSuspend()) {
             functionDescriptor = CoroutineCodegenUtilKt.getOrCreateJvmSuspendFunctionView(functionDescriptor, typeMapper.getBindingContext());
         }
+
+        List<ValueParameterDescriptor> decomposedLambdaParametersForSuspendLambda = new ArrayList<>();
+        if (context.getParentContext() instanceof ClosureContext) {
+            FunctionDescriptor lambdaDescriptor = ((ClosureContext) context.getParentContext()).getOriginalSuspendLambdaDescriptor();
+            if (lambdaDescriptor != null && functionDescriptor.getName().equals(Name.identifier("doResume"))) {
+                decomposedLambdaParametersForSuspendLambda.addAll(lambdaDescriptor.getValueParameters());
+            }
+        }
+
         generateLocalVariableTable(
                 mv, signature, functionDescriptor, thisType, methodBegin, methodEnd, context.getContextKind(), typeMapper,
-                (functionFakeIndex >= 0 ? 1 : 0) + (lambdaFakeIndex >= 0 ? 1 : 0)
+                decomposedLambdaParametersForSuspendLambda, (functionFakeIndex >= 0 ? 1 : 0) + (lambdaFakeIndex >= 0 ? 1 : 0)
         );
 
         //TODO: it's best to move all below logic to 'generateLocalVariableTable' method
@@ -691,6 +702,7 @@ public class FunctionCodegen {
             @NotNull Label methodEnd,
             @NotNull OwnerKind ownerKind,
             @NotNull KotlinTypeMapper typeMapper,
+            @NotNull List<ValueParameterDescriptor> decomposedLambdaParametersForSuspendLambda,
             int shiftForDestructuringVariables
     ) {
         if (functionDescriptor.isSuspend()) {
@@ -709,15 +721,19 @@ public class FunctionCodegen {
                                )
                         ),
                         unwrapped,
-                        thisType, methodBegin, methodEnd, ownerKind, typeMapper, shiftForDestructuringVariables
+                        thisType, methodBegin, methodEnd, ownerKind, typeMapper, decomposedLambdaParametersForSuspendLambda,
+                        shiftForDestructuringVariables
                 );
                 return;
             }
         }
 
+        List<ValueParameterDescriptor> valueParameters = new ArrayList<>(functionDescriptor.getValueParameters());
+        valueParameters.addAll(decomposedLambdaParametersForSuspendLambda);
+
         generateLocalVariablesForParameters(mv,
                                             jvmMethodSignature,
-                                            thisType, methodBegin, methodEnd, functionDescriptor.getValueParameters(),
+                                            thisType, methodBegin, methodEnd, valueParameters,
                                             AsmUtil.isStaticMethod(ownerKind, functionDescriptor), typeMapper, shiftForDestructuringVariables
         );
     }
